@@ -100,7 +100,9 @@ public class RedisLock implements DistributedLock {
         if (value == null) {
             throw new IllegalMonitorStateException();
         }
-        redis.tryRelease(key, value);
+        if (redis.canRelease(key, value)) {
+            redis.release(key);
+        }
     }
 
     private String getLock() {

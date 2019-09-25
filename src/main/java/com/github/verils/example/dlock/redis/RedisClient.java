@@ -2,7 +2,9 @@ package com.github.verils.example.dlock.redis;
 
 public interface RedisClient {
 
-    boolean tryAcquire(String key, String lock, int expireSeconds);
+    boolean tryAcquire(String key, String value, int expireSeconds);
 
-    void tryRelease(String key, String value);
+    boolean canRelease(String key, String value);
+
+    void release(String key);
 }

@@ -105,7 +105,7 @@ public class RedisReentrantLock implements DistributedLock {
         if (value == null) {
             throw new IllegalMonitorStateException();
         }
-        redis.tryRelease(key, value);
+        redis.release(key, value);
     }
 
     private boolean hasLock() {
