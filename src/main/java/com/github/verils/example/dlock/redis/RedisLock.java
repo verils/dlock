@@ -1,15 +1,15 @@
-package com.github.verils.example.dlock.lock.redis;
+package com.github.verils.example.dlock.redis;
 
+import com.github.verils.example.dlock.DistributedLock;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 
 @Slf4j
-public class RedisLock implements Lock {
+public class RedisLock implements DistributedLock {
 
     private final Sync sync = new Sync();
 

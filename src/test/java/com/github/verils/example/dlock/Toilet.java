@@ -18,7 +18,7 @@ public class Toilet {
 //        boolean locked = lock.tryLock();
 //        if (locked) {
             try {
-                lock.lock();
+//                lock.lock();
                 log.info("{} 来了", man);
                 Thread.sleep(600);
                 log.info("{} 走了", man);

@@ -1,11 +1,11 @@
-package com.github.verils.example.dlock.lock;
+package com.github.verils.example.dlock;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-public class SimpleLock implements Lock {
+public class Mutex implements Lock {
 
     private final Sync sync = new Sync();
 

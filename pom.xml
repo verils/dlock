@@ -7,6 +7,12 @@
     <groupId>com.github.verils.example</groupId>
     <artifactId>dlock</artifactId>
     <version>0.1.0-SNAPSHOT</version>
+    <properties>
+        <jedis.version>2.10.2</jedis.version>
+        <junit.version>4.12</junit.version>
+        <logback.version>1.2.3</logback.version>
+        <lombok.version>1.18.10</lombok.version>
+    </properties>
 
     <name>dlock</name>
 
@@ -14,26 +20,26 @@
         <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
-            <version>2.10.2</version>
+            <version>${jedis.version}</version>
         </dependency>
 
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.3</version>
+            <version>${logback.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.10</version>
+            <version>${lombok.version}</version>
             <optional>true</optional>
         </dependency>
 
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

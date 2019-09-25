@@ -1,5 +1,6 @@
-package com.github.verils.example.dlock.lock.redis;
+package com.github.verils.example.dlock.redis.client;
 
+import com.github.verils.example.dlock.redis.RedisClient;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;

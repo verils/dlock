@@ -1,4 +1,4 @@
-package com.github.verils.example.dlock.lock.redis;
+package com.github.verils.example.dlock.redis;
 
 public interface RedisClient {
 

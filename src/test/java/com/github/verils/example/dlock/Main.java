@@ -1,8 +1,8 @@
 package com.github.verils.example.dlock;
 
-import com.github.verils.example.dlock.lock.redis.JedisClient;
-import com.github.verils.example.dlock.lock.redis.RedisClient;
-import com.github.verils.example.dlock.lock.redis.RedisReentrantLock;
+import com.github.verils.example.dlock.redis.RedisClient;
+import com.github.verils.example.dlock.redis.RedisLock;
+import com.github.verils.example.dlock.redis.client.JedisClient;
 import redis.clients.jedis.JedisPool;
 
 import java.util.concurrent.ExecutorService;
@@ -25,7 +25,7 @@ public class Main {
 
     private static void run(RedisClient client) {
         ExecutorService executorService = Executors.newFixedThreadPool(6);
-        Lock lock = new RedisReentrantLock(client, "toilet:lock", 5);
+        Lock lock = new RedisLock(client, "toilet:lock", 5);
         Toilet toilet = new Toilet(lock);
         for (int i = 0; i < 200; i++) {
             String man = men[i % 4];
