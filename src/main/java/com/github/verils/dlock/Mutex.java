@@ -1,4 +1,4 @@
-package com.github.verils.example.dlock;
+package com.github.verils.dlock;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;

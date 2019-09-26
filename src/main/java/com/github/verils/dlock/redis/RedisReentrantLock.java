@@ -1,6 +1,6 @@
-package com.github.verils.example.dlock.redis;
+package com.github.verils.dlock.redis;
 
-import com.github.verils.example.dlock.DistributedLock;
+import com.github.verils.dlock.DistributedLock;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;

@@ -1,4 +1,4 @@
-package com.github.verils.example.dlock;
+package com.github.verils.dlock;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -1,6 +1,6 @@
-package com.github.verils.example.dlock.redis;
+package com.github.verils.dlock.redis;
 
-import com.github.verils.example.dlock.DistributedLock;
+import com.github.verils.dlock.DistributedLock;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
@@ -8,6 +8,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.concurrent.locks.Condition;
 
+/**
+ * 不可重入的分布式锁，基于Jedis实现
+ */
 @Slf4j
 public class RedisLock implements DistributedLock {
 
@@ -16,47 +19,66 @@ public class RedisLock implements DistributedLock {
     private final RedisClient redis;
 
     private final String key;
-    private final int defaultExpireSeconds;
+    private final int expireSeconds;
+    private final int waitSeconds;
 
     private String value;
 
-    public RedisLock(RedisClient redis, String key, int defaultExpireSeconds) {
+    public RedisLock(RedisClient redis, String key, int expireSeconds) {
+        this(redis, key, expireSeconds, 30);
+    }
+
+    public RedisLock(RedisClient redis, String key, int expireSeconds, int waitSeconds) {
         this.redis = redis;
         this.key = key;
-        this.defaultExpireSeconds = defaultExpireSeconds;
+        this.expireSeconds = expireSeconds;
+        this.waitSeconds = waitSeconds;
     }
 
     @Override
     public void lock() {
         sync.acquire(1);
-        acquire();
+        try {
+            acquire();
+        } catch (Exception e) {
+            sync.release(1);
+            throw e;
+        }
     }
 
     @Override
     public void lockInterruptibly() throws InterruptedException {
-        sync.acquireInterruptibly(1);
-        acquire();
+        throw new UnsupportedOperationException();
+//        sync.acquireInterruptibly(1);
+//        try {
+//            acquire();
+//        } catch (Exception e) {
+//            sync.release(1);
+//            throw e;
+//        }
     }
 
     @Override
     public boolean tryLock() {
-        try {
-            return tryLock(defaultExpireSeconds, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            throw new IllegalThreadStateException();
-        }
+        throw new UnsupportedOperationException();
+//        try {
+//            return tryLock(expireSeconds, TimeUnit.SECONDS);
+//        } catch (InterruptedException e) {
+//            throw new IllegalThreadStateException();
+//        }
     }
 
     @Override
     public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-        boolean locked = sync.tryAcquireNanos(1, unit.toNanos(time));
-        if (locked) {
-            locked = tryAcquire();
-            if (!locked) {
-                sync.release(1);
-            }
-        }
-        return locked;
+        throw new UnsupportedOperationException();
+//        boolean locked = sync.tryAcquireNanos(1, unit.toNanos(time));
+//        if (locked) {
+//            locked = tryAcquire();
+//            if (!locked) {
+//                sync.release(1);
+//            }
+//        }
+//        return locked;
     }
 
     @Override
@@ -73,13 +95,13 @@ public class RedisLock implements DistributedLock {
     private void acquire() {
         String value = getLock();
         while (true) {
-            boolean acquired = redis.tryAcquire(key, value, defaultExpireSeconds);
+            boolean acquired = redis.tryAcquire(key, value, expireSeconds);
             if (acquired) {
                 this.value = value;
                 break;
             } else {
                 try {
-                    Thread.sleep(30);
+                    Thread.sleep(waitSeconds);
                 } catch (InterruptedException e) {
                     throw new IllegalThreadStateException();
                 }
@@ -89,7 +111,7 @@ public class RedisLock implements DistributedLock {
 
     private boolean tryAcquire() {
         String value = getLock();
-        boolean acquired = redis.tryAcquire(key, value, defaultExpireSeconds);
+        boolean acquired = redis.tryAcquire(key, value, expireSeconds);
         if (acquired) {
             this.value = value;
         }
@@ -98,10 +120,12 @@ public class RedisLock implements DistributedLock {
 
     private void release() {
         if (value == null) {
-            throw new IllegalMonitorStateException();
+            throw new IllegalMonitorStateException("Lock state error");
         }
         if (redis.canRelease(key, value)) {
             redis.release(key);
+        } else {
+            throw new IllegalMonitorStateException("Cannot unlock before retrieved lock");
         }
     }
 

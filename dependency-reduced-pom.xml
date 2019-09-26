@@ -22,7 +22,7 @@
         <configuration>
           <transformers>
             <transformer>
-              <mainClass>com.github.verils.example.dlock.Main</mainClass>
+              <mainClass>Main</mainClass>
             </transformer>
           </transformers>
         </configuration>

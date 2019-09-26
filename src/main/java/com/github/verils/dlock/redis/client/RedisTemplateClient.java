@@ -1,6 +1,6 @@
-package com.github.verils.example.dlock.redis.client;
+package com.github.verils.dlock.redis.client;
 
-import com.github.verils.example.dlock.redis.RedisClient;
+import com.github.verils.dlock.redis.RedisClient;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import redis.clients.jedis.JedisCommands;

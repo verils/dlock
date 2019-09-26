@@ -1,8 +1,8 @@
-package com.github.verils.example.dlock;
+package com.github.verils.dlock;
 
-import com.github.verils.example.dlock.redis.RedisClient;
-import com.github.verils.example.dlock.redis.RedisLock;
-import com.github.verils.example.dlock.redis.client.JedisClient;
+import com.github.verils.dlock.redis.RedisClient;
+import com.github.verils.dlock.redis.RedisLock;
+import com.github.verils.dlock.redis.client.JedisClient;
 import redis.clients.jedis.JedisPool;
 
 import java.util.concurrent.ExecutorService;
