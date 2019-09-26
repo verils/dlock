@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.github.verils.example</groupId>
+  <groupId>com.github.verils</groupId>
   <artifactId>dlock</artifactId>
   <name>dlock</name>
   <version>0.1.0-SNAPSHOT</version>
@@ -43,4 +43,10 @@
       </exclusions>
     </dependency>
   </dependencies>
+  <properties>
+    <logback.version>1.2.3</logback.version>
+    <jedis.version>2.10.2</jedis.version>
+    <lombok.version>1.18.10</lombok.version>
+    <junit.version>4.12</junit.version>
+  </properties>
 </project>
