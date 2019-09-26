@@ -24,9 +24,9 @@ public class JedisClient implements RedisClient {
         try (Jedis jedis = jedisPool.getResource()) {
             String status = jedis.set(key, value, NX, EX, expireSeconds);
             boolean acquired = STATUS_OK.equals(status);
-            if (log.isDebugEnabled()) {
-                if (acquired) {
-                    log.debug("Acquired lock [{} -\"{}\"]", key, value);
+            if (acquired) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Acquired lock [\"{}\" - \"{}\"]", key, value);
                 }
             }
             return acquired;
@@ -34,23 +34,20 @@ public class JedisClient implements RedisClient {
     }
 
     @Override
-    public boolean canRelease(String key, String value) {
+    public boolean tryRelease(String key, String value) {
         try (Jedis jedis = jedisPool.getResource()) {
             String lock = jedis.get(key);
             if (lock == null) {
                 throw new IllegalMonitorStateException();
             }
-            return lock.equals(value);
-        }
-    }
-
-    @Override
-    public void release(String key) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            jedis.del(key);
-            if (log.isDebugEnabled()) {
-                log.info("Released lock [{}]", key);
+            boolean hasLock = lock.equals(value);
+            if (hasLock) {
+                jedis.del(key);
+                if (log.isDebugEnabled()) {
+                    log.debug("Released lock [\"{}\" - \"{}\"]", key, value);
+                }
             }
+            return hasLock;
         }
     }
 }

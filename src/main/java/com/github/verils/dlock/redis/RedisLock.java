@@ -40,6 +40,9 @@ public class RedisLock implements DistributedLock {
         sync.acquire(1);
         try {
             acquire();
+        } catch (InterruptedException e) {
+            sync.release(1);
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             sync.release(1);
             throw e;
@@ -48,14 +51,13 @@ public class RedisLock implements DistributedLock {
 
     @Override
     public void lockInterruptibly() throws InterruptedException {
-        throw new UnsupportedOperationException();
-//        sync.acquireInterruptibly(1);
-//        try {
-//            acquire();
-//        } catch (Exception e) {
-//            sync.release(1);
-//            throw e;
-//        }
+        sync.acquireInterruptibly(1);
+        try {
+            acquire();
+        } catch (Exception e) {
+            sync.release(1);
+            throw e;
+        }
     }
 
     @Override
@@ -83,8 +85,12 @@ public class RedisLock implements DistributedLock {
 
     @Override
     public void unlock() {
-        release();
-        sync.release(1);
+        if (!sync.isHeldExclusively()) {
+            throw new IllegalMonitorStateException("Current thread is not holding lock");
+        }
+        if (release()) {
+            sync.release(1);
+        }
     }
 
     @Override
@@ -92,49 +98,53 @@ public class RedisLock implements DistributedLock {
         return sync.newConditionObject();
     }
 
-    private void acquire() {
+    /**
+     * 该方法是线程安全的
+     */
+    private void acquire() throws InterruptedException {
         String value = getLock();
-        while (true) {
-            boolean acquired = redis.tryAcquire(key, value, expireSeconds);
-            if (acquired) {
-                this.value = value;
-                break;
-            } else {
-                try {
-                    Thread.sleep(waitSeconds);
-                } catch (InterruptedException e) {
-                    throw new IllegalThreadStateException();
-                }
-            }
+        while (!redis.tryAcquire(key, value, expireSeconds)) {
+            Thread.sleep(waitSeconds);
         }
+        this.value = value;
     }
 
     private boolean tryAcquire() {
-        String value = getLock();
-        boolean acquired = redis.tryAcquire(key, value, expireSeconds);
-        if (acquired) {
-            this.value = value;
-        }
-        return acquired;
+        throw new UnsupportedOperationException();
+//        String value = getLock();
+//        boolean acquired = redis.tryAcquire(key, value, expireSeconds);
+//        if (acquired) {
+//            this.value = value;
+//        }
+//        return acquired;
     }
 
-    private void release() {
+    /**
+     * 该方法是线程安全的
+     *
+     * @return true成功删除redis中的锁
+     */
+    private boolean release() {
         if (value == null) {
-            throw new IllegalMonitorStateException("Lock state error");
+            throw new IllegalMonitorStateException();
         }
-        if (redis.canRelease(key, value)) {
-            redis.release(key);
-        } else {
-            throw new IllegalMonitorStateException("Cannot unlock before retrieved lock");
+        boolean released = redis.tryRelease(key, value);
+        if (released) {
+            this.value = null;
         }
+        return released;
     }
 
     private String getLock() {
         return UUID.randomUUID().toString();
     }
 
+    /**
+     * 利用同步器来保证进程内的线程安全
+     */
     private class Sync extends AbstractQueuedSynchronizer {
 
+        @Override
         public boolean tryAcquire(int acquires) {
             if (compareAndSetState(0, 1)) {
                 setExclusiveOwnerThread(Thread.currentThread());
@@ -143,6 +153,7 @@ public class RedisLock implements DistributedLock {
             return false;
         }
 
+        @Override
         public boolean tryRelease(int acquires) {
             if (getState() == 0) {
                 throw new IllegalMonitorStateException();
@@ -152,7 +163,12 @@ public class RedisLock implements DistributedLock {
             return true;
         }
 
-        public Condition newConditionObject() {
+        @Override
+        protected boolean isHeldExclusively() {
+            return Thread.currentThread() == getExclusiveOwnerThread();
+        }
+
+        Condition newConditionObject() {
             return new ConditionObject();
         }
     }
