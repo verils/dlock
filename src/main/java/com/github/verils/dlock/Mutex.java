@@ -5,6 +5,11 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+/**
+ * 参考AQS文档实现的简单锁实现。该锁不可重入，请勿在正式环境中使用，避免造成死锁。
+ *
+ * @see AbstractQueuedSynchronizer
+ */
 public class Mutex implements Lock {
 
     private final Sync sync = new Sync();
