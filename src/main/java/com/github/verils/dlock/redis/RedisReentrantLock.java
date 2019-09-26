@@ -105,7 +105,11 @@ public class RedisReentrantLock implements DistributedLock {
         if (value == null) {
             throw new IllegalMonitorStateException();
         }
-        redis.release(key, value);
+        if (redis.canRelease(key, value)) {
+            redis.release(key);
+        } else {
+            throw new IllegalMonitorStateException("Cannot unlock before retrieved lock");
+        }
     }
 
     private boolean hasLock() {
