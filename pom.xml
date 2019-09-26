@@ -22,11 +22,6 @@
             <artifactId>jedis</artifactId>
             <version>${jedis.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-redis</artifactId>
-            <version>1.8.23.RELEASE</version>
-        </dependency>
 
         <dependency>
             <groupId>ch.qos.logback</groupId>
