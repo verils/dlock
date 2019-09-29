@@ -11,34 +11,30 @@ import java.util.concurrent.locks.Lock;
 @Slf4j
 public class Toilet {
 
-    public static final String[] VISITORS = {"CCW他大爷", "CCW他二大爷", "CCW他三大爷", "CCW他四大爷"};
+    private static final String[] VISITORS = {"CCW他大爷", "CCW他二大爷", "CCW他三大爷", "CCW他四大爷"};
 
     private final Lock lock;
 
     private int count;
 
-    public Toilet(Lock lock) {
+    private Toilet(Lock lock) {
         this.lock = lock;
     }
 
-    public void accept(String man) {
+    private void accept(String man) {
         lock.lock();
-        count++;
-//        boolean locked = lock.tryLock();
-//        if (locked) {
+        int temp = count;
         try {
-//                lock.lock();
             log.info("{}来了, count: {}", man, count);
+            temp++;
             Thread.sleep(100);
             log.info("{}走了, count: {}", man, count);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
+            count = temp;
             lock.unlock();
         }
-//        } else {
-//            log.warn("Can't acquire lock");
-//        }
     }
 
     public int getCount() {
