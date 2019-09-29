@@ -11,13 +11,13 @@ dlock基于JUC的`Lock`接口来实现，锁逻辑主要分为两个部分：单
 
 ### 不可重入的分布式锁执行过程
 
-![不可重入分布式锁执行流程](./不可重入的分布式锁执行流程.png)
+![不可重入分布式锁执行流程](docs/不可重入的分布式锁执行流程.png)
 
 ## 使用手册
 
 目前提供的锁实现有如下几种：
 
-- [RedisLock](#RedisLock)
+- [RedisLock](#redislock)
 
 ### RedisLock
 
@@ -34,8 +34,8 @@ int defaultExpireSeconds = 5;
 Lock lock = new RedisLock(client, lockName, defaultExpireSeconds);
 lock.lock();
 try {
-  ...
+    ...
 } finally {
-  lock.unlock();
+    lock.unlock();
 }
 ```
