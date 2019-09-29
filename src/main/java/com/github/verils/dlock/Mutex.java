@@ -55,6 +55,9 @@ public class Mutex implements Lock {
         }
 
         public boolean tryRelease(int acquires) {
+            if (!isHeldExclusively()) {
+                throw new IllegalMonitorStateException("Current thread is not holding lock");
+            }
             if (getState() == 0) {
                 throw new IllegalMonitorStateException();
             }
@@ -63,7 +66,12 @@ public class Mutex implements Lock {
             return true;
         }
 
-        public Condition newConditionObject() {
+        @Override
+        protected boolean isHeldExclusively() {
+            return Thread.currentThread() == getExclusiveOwnerThread();
+        }
+
+        Condition newConditionObject() {
             return new ConditionObject();
         }
     }

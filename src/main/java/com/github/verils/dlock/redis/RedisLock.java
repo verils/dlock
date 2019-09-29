@@ -9,7 +9,7 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.concurrent.locks.Condition;
 
 /**
- * 不可重入的分布式锁，基于Jedis实现
+ * 不可重入的分布式锁，基于Redis实现
  */
 @Slf4j
 public class RedisLock implements DistributedLock {
@@ -19,19 +19,19 @@ public class RedisLock implements DistributedLock {
     private final RedisClient redis;
 
     private final String key;
-    private final int expireSeconds;
+    private final int expireInSeconds;
     private final int waitSeconds;
 
     private String value;
 
-    public RedisLock(RedisClient redis, String key, int expireSeconds) {
-        this(redis, key, expireSeconds, 30);
+    public RedisLock(RedisClient redis, String key, int expireInSeconds) {
+        this(redis, key, expireInSeconds, 30);
     }
 
-    public RedisLock(RedisClient redis, String key, int expireSeconds, int waitSeconds) {
+    public RedisLock(RedisClient redis, String key, int expireInSeconds, int waitSeconds) {
         this.redis = redis;
         this.key = key;
-        this.expireSeconds = expireSeconds;
+        this.expireInSeconds = expireInSeconds;
         this.waitSeconds = waitSeconds;
     }
 
@@ -64,7 +64,7 @@ public class RedisLock implements DistributedLock {
     public boolean tryLock() {
         throw new UnsupportedOperationException();
 //        try {
-//            return tryLock(expireSeconds, TimeUnit.SECONDS);
+//            return tryLock(expireInSeconds, TimeUnit.SECONDS);
 //        } catch (InterruptedException e) {
 //            throw new IllegalThreadStateException();
 //        }
@@ -88,7 +88,9 @@ public class RedisLock implements DistributedLock {
         if (!sync.isHeldExclusively()) {
             throw new IllegalMonitorStateException("Current thread is not holding lock");
         }
-        if (release()) {
+        try {
+            release();
+        } finally {
             sync.release(1);
         }
     }
@@ -103,7 +105,7 @@ public class RedisLock implements DistributedLock {
      */
     private void acquire() throws InterruptedException {
         String value = getLock();
-        while (!redis.tryAcquire(key, value, expireSeconds)) {
+        while (!redis.tryAcquire(key, value, expireInSeconds)) {
             Thread.sleep(waitSeconds);
         }
         this.value = value;
@@ -112,7 +114,7 @@ public class RedisLock implements DistributedLock {
     private boolean tryAcquire() {
         throw new UnsupportedOperationException();
 //        String value = getLock();
-//        boolean acquired = redis.tryAcquire(key, value, expireSeconds);
+//        boolean acquired = redis.tryAcquire(key, value, expireInSeconds);
 //        if (acquired) {
 //            this.value = value;
 //        }
@@ -124,15 +126,15 @@ public class RedisLock implements DistributedLock {
      *
      * @return true成功删除redis中的锁
      */
-    private boolean release() {
+    private void release() {
         if (value == null) {
             throw new IllegalMonitorStateException();
         }
-        boolean released = redis.tryRelease(key, value);
-        if (released) {
-            this.value = null;
+        if (!value.equals(redis.getLock(key))) {
+            throw new IllegalMonitorStateException();
         }
-        return released;
+        this.value = null;
+        redis.release(key);
     }
 
     private String getLock() {
@@ -140,7 +142,7 @@ public class RedisLock implements DistributedLock {
     }
 
     /**
-     * 利用同步器来保证进程内的线程安全
+     * Keep multi-thread safety using AbstractQueuedSynchronizer
      */
     private class Sync extends AbstractQueuedSynchronizer {
 
@@ -149,12 +151,17 @@ public class RedisLock implements DistributedLock {
             if (compareAndSetState(0, 1)) {
                 setExclusiveOwnerThread(Thread.currentThread());
                 return true;
+            } else if (Thread.currentThread() == getExclusiveOwnerThread()) {
+                throw new IllegalMonitorStateException("Cannot lock twice on a non-reentrant lock");
             }
             return false;
         }
 
         @Override
         public boolean tryRelease(int acquires) {
+            if (!isHeldExclusively()) {
+                throw new IllegalMonitorStateException("Current thread is not holding lock");
+            }
             if (getState() == 0) {
                 throw new IllegalMonitorStateException();
             }
