@@ -25,10 +25,10 @@ public class Toilet {
         lock.lock();
         int temp = count;
         try {
-            log.info("{}来了, count: {}", man, count);
             temp++;
+            log.info("{}来了, count: {}", man, temp);
             Thread.sleep(100);
-            log.info("{}走了, count: {}", man, count);
+            log.info("{}走了, count: {}", man, temp);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
