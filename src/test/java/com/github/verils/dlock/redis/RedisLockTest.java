@@ -11,7 +11,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -49,13 +49,13 @@ public class RedisLockTest {
     }
 
     @Test
-    public void lockNormally() {
+    public void lockNormal() {
         when(redisClient.tryAcquire(eq(TEST_LOCK_KEY), anyString(), eq(EXPIRE_IN_SECONDS))).thenReturn(true);
         redisLock.lock();
     }
 
     @Test
-    public void lockReentrantly() {
+    public void lockReentrant() {
         when(redisClient.tryAcquire(eq(TEST_LOCK_KEY), anyString(), eq(EXPIRE_IN_SECONDS))).thenReturn(true);
 
         expectedException.expect(IllegalMonitorStateException.class);
@@ -77,7 +77,24 @@ public class RedisLockTest {
     }
 
     @Test
-    public void unlockNormally() {
+    public void tryLockNormal() {
+        when(redisClient.tryAcquire(eq(TEST_LOCK_KEY), anyString(), eq(EXPIRE_IN_SECONDS))).thenReturn(true);
+
+        boolean locked = redisLock.tryLock();
+        assertTrue(locked);
+    }
+
+    @Test
+    public void tryLockExceptional() {
+        RuntimeException thrown = new RuntimeException("Test thrown when set key to redis");
+        when(redisClient.tryAcquire(eq(TEST_LOCK_KEY), anyString(), eq(EXPIRE_IN_SECONDS))).thenThrow(thrown);
+
+        boolean locked = redisLock.tryLock();
+        assertFalse(locked);
+    }
+
+    @Test
+    public void unlockNormal() {
         Queue<String> queue = new ArrayBlockingQueue<>(1);
         when(redisClient.tryAcquire(eq(TEST_LOCK_KEY), anyString(), eq(EXPIRE_IN_SECONDS))).thenAnswer(invocation -> {
             queue.add(invocation.getArgument(1));

@@ -23,12 +23,26 @@ public class Toilet {
 
     private void accept(String man) {
         lock.lock();
+        process(man);
+    }
+
+    private void tryAccept(String man) {
+        boolean locked = lock.tryLock();
+        if (locked) {
+            process(man);
+        } else {
+            log.warn("Someone is using");
+        }
+    }
+
+    private void process(String man) {
+        // use a temp on purpose
         int temp = count;
         try {
             temp++;
-            log.info("{}来了, count: {}", man, temp);
+            log.info("No.{} man come, name: {}", temp, man);
             Thread.sleep(100);
-            log.info("{}走了, count: {}", man, temp);
+            log.info("No.{} man gone, name: {}", temp, man);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
@@ -43,13 +57,32 @@ public class Toilet {
 
     public static Toilet test(Lock lock, int threadCount, int executionTimes) throws ExecutionException, InterruptedException {
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        try {
-            Toilet toilet = new Toilet(lock);
 
-            CompletableFuture[] futures = new CompletableFuture[executionTimes];
+        Toilet toilet = new Toilet(lock);
+        CompletableFuture[] futures = new CompletableFuture[executionTimes];
+        try {
             for (int i = 0; i < executionTimes; i++) {
                 String man = VISITORS[i % 4];
                 futures[i] = CompletableFuture.runAsync(() -> toilet.accept(man), executor);
+            }
+            CompletableFuture<Void> future = CompletableFuture.allOf(futures);
+            future.get();
+
+            return toilet;
+        } finally {
+            executor.shutdown();
+        }
+    }
+
+    public static Toilet testTry(Lock lock, int threadCount, int executionTimes) throws ExecutionException, InterruptedException {
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        Toilet toilet = new Toilet(lock);
+        CompletableFuture[] futures = new CompletableFuture[executionTimes];
+        try {
+            for (int i = 0; i < executionTimes; i++) {
+                String man = VISITORS[i % 4];
+                futures[i] = CompletableFuture.runAsync(() -> toilet.tryAccept(man), executor);
             }
             CompletableFuture<Void> future = CompletableFuture.allOf(futures);
             future.get();

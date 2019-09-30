@@ -24,6 +24,13 @@ public class RedisLock implements DistributedLock {
 
     private String value;
 
+    /**
+     * Create a redis lock instance, when trying to acquire redis lock returns {@code false}, thread goes into self spin for a default sleep time at {@code 30ms}.
+     *
+     * @param redis           An {@link RedisClient} implementation providing the ability to access redis
+     * @param key             To be used as the redis lock entry's key
+     * @param expireInSeconds Expire time set to the redis lock entry
+     */
     public RedisLock(RedisClient redis, String key, int expireInSeconds) {
         this(redis, key, expireInSeconds, 30);
     }
@@ -62,25 +69,26 @@ public class RedisLock implements DistributedLock {
 
     @Override
     public boolean tryLock() {
-        throw new UnsupportedOperationException();
-//        try {
-//            return tryLock(expireInSeconds, TimeUnit.SECONDS);
-//        } catch (InterruptedException e) {
-//            throw new IllegalThreadStateException();
-//        }
+        return tryLock(expireInSeconds, TimeUnit.SECONDS);
     }
 
     @Override
-    public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-        throw new UnsupportedOperationException();
-//        boolean locked = sync.tryAcquireNanos(1, unit.toNanos(time));
-//        if (locked) {
-//            locked = tryAcquire();
-//            if (!locked) {
-//                sync.release(1);
-//            }
-//        }
-//        return locked;
+    public boolean tryLock(long time, TimeUnit unit) {
+        boolean acquired = sync.tryAcquire(1);
+        if (!acquired) {
+            return false;
+        }
+        try {
+            acquired = tryAcquire(time, unit);
+        } catch (Exception e) {
+            sync.release(1);
+            return false;
+        }
+        if (!acquired) {
+            sync.release(1);
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -111,20 +119,17 @@ public class RedisLock implements DistributedLock {
         this.value = value;
     }
 
-    private boolean tryAcquire() {
-        throw new UnsupportedOperationException();
-//        String value = getLock();
-//        boolean acquired = redis.tryAcquire(key, value, expireInSeconds);
-//        if (acquired) {
-//            this.value = value;
-//        }
-//        return acquired;
+    private boolean tryAcquire(long time, TimeUnit unit) {
+        String value = getLock();
+        boolean acquired = redis.tryAcquire(key, value, (int) unit.toSeconds(time));
+        if (acquired) {
+            this.value = value;
+        }
+        return acquired;
     }
 
     /**
-     * 该方法是线程安全的
-     *
-     * @return true成功删除redis中的锁
+     * This method is thread safe
      */
     private void release() {
         if (value == null) {
