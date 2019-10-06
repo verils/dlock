@@ -156,7 +156,7 @@ public class RedisLock implements DistributedLock {
             if (compareAndSetState(0, 1)) {
                 setExclusiveOwnerThread(Thread.currentThread());
                 return true;
-            } else if (Thread.currentThread() == getExclusiveOwnerThread()) {
+            } else if (isHeldExclusively()) {
                 throw new IllegalMonitorStateException("Cannot lock twice on a non-reentrant lock");
             }
             return false;
