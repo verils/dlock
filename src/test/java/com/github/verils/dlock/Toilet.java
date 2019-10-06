@@ -26,6 +26,13 @@ public class Toilet {
         process(man);
     }
 
+    private void acceptReentrant(String man) {
+        lock.lock();
+        lock.lock();
+        process(man);
+        lock.unlock();
+    }
+
     private void tryAccept(String man) {
         boolean locked = lock.tryLock();
         if (locked) {
@@ -64,6 +71,25 @@ public class Toilet {
             for (int i = 0; i < executionTimes; i++) {
                 String man = VISITORS[i % 4];
                 futures[i] = CompletableFuture.runAsync(() -> toilet.accept(man), executor);
+            }
+            CompletableFuture<Void> future = CompletableFuture.allOf(futures);
+            future.get();
+
+            return toilet;
+        } finally {
+            executor.shutdown();
+        }
+    }
+
+    public static Toilet testReentrant(Lock lock, int threadCount, int executionTimes) throws ExecutionException, InterruptedException {
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        Toilet toilet = new Toilet(lock);
+        CompletableFuture[] futures = new CompletableFuture[executionTimes];
+        try {
+            for (int i = 0; i < executionTimes; i++) {
+                String man = VISITORS[i % 4];
+                futures[i] = CompletableFuture.runAsync(() -> toilet.acceptReentrant(man), executor);
             }
             CompletableFuture<Void> future = CompletableFuture.allOf(futures);
             future.get();
