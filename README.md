@@ -13,6 +13,10 @@ dlock基于JUC的`Lock`接口来实现，锁逻辑主要分为两个部分：单
 
 ![不可重入分布式锁执行流程](docs/不可重入的分布式锁执行流程.png)
 
+### 可重入的分布式锁执行过程
+
+![可重入分布式锁执行流程](docs/可重入的分布式锁执行流程.png)
+
 ## 使用手册
 
 目前提供的锁实现有如下几种：
@@ -24,8 +28,7 @@ dlock基于JUC的`Lock`接口来实现，锁逻辑主要分为两个部分：单
 `RedisLock`是一个不可重入的分布式锁实现，使用时需要构造一个`RedisClient`来提供对Redis服务的访问。默认的实现有`JedisClient`。锁的使用方式很简单，与`Lock`接口一致：
 
 ```Java
-
-JedisPool jedisPool = ...
+JedisPool jedisPool = getPool();
 
 RedisClient client = new JedisClient(jedisPool);
 String lockName = "amazing:lock";
