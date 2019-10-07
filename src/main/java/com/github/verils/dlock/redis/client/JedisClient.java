@@ -34,6 +34,13 @@ public class JedisClient implements RedisClient {
     }
 
     @Override
+    public void expire(String key, int expireInSeconds) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.expire(key, expireInSeconds);
+        }
+    }
+
+    @Override
     public String getLock(String key) {
         try (Jedis jedis = jedisPool.getResource()) {
             return jedis.get(key);

@@ -46,10 +46,10 @@ public class RedisReentrantLock implements DistributedLock {
         try {
             acquire();
         } catch (InterruptedException e) {
-            sync.release(1);
+            reset();
             Thread.currentThread().interrupt();
         } catch (Exception e) {
-            sync.release(1);
+            reset();
             throw e;
         }
     }
@@ -60,7 +60,7 @@ public class RedisReentrantLock implements DistributedLock {
         try {
             acquire();
         } catch (Exception e) {
-            sync.release(1);
+            reset();
             throw e;
         }
     }
@@ -95,12 +95,13 @@ public class RedisReentrantLock implements DistributedLock {
             throw new IllegalMonitorStateException("Current thread is not holding lock");
         }
         try {
-            if (tryRelease()) {
-                sync.release(1);
-            }
+            release();
         } catch (Exception e) {
             sync.release(1);
             throw e;
+        }
+        if (state == 0) {
+            sync.release(1);
         }
     }
 
@@ -113,11 +114,13 @@ public class RedisReentrantLock implements DistributedLock {
      * 该方法是线程安全的
      */
     private void acquire() throws InterruptedException {
-        if (state != 0 && sync.isHeldExclusively()) {
+        boolean reentrant = isHeldExclusively();
+        if (reentrant) {
             state += 1;
+            redis.expire(key, expireInSeconds);
             return;
         }
-        String lock = getLock();
+        String lock = newLock();
         while (!redis.tryAcquire(key, lock, expireInSeconds)) {
             Thread.sleep(waitSeconds);
         }
@@ -126,20 +129,28 @@ public class RedisReentrantLock implements DistributedLock {
     }
 
     private boolean tryAcquire(long time, TimeUnit unit) {
-        if (state != 0 && sync.isHeldExclusively()) {
-            state += 1;
-            return true;
-        }
-        String lock = getLock();
+        String lock = newLock();
         boolean acquired = redis.tryAcquire(key, lock, (int) unit.toSeconds(time));
         if (acquired) {
             value = lock;
             state += 1;
+            return true;
         }
-        return acquired;
+        if (isHeldExclusively()) {
+            state += 1;
+            redis.expire(key, (int) unit.toSeconds(time));
+            return true;
+        }
+        return false;
     }
 
-    private boolean tryRelease() {
+    private void reset() {
+        sync.release(1);
+        value = null;
+        state = 0;
+    }
+
+    private void release() {
         if (value == null) {
             throw new IllegalMonitorStateException();
         }
@@ -151,26 +162,25 @@ public class RedisReentrantLock implements DistributedLock {
             throw new IllegalMonitorStateException();
         }
         if (state > 0) {
-            return false;
+            return;
         }
         this.value = null;
         redis.release(key);
-        return true;
     }
 
-    private boolean hasLock() {
-        return value != null;
+    private boolean isHeldExclusively() {
+        return value != null && value.equals(redis.getLock(key));
     }
 
-    private String getLock() {
-        return hasLock() ? value : UUID.randomUUID().toString();
+    private String newLock() {
+        return UUID.randomUUID().toString();
     }
 
     private class Sync extends AbstractQueuedSynchronizer {
 
         @Override
         public boolean tryAcquire(int acquires) {
-            if (compareAndSetState(0, acquires)) {
+            if (compareAndSetState(0, 1)) {
                 setExclusiveOwnerThread(Thread.currentThread());
                 return true;
             }
@@ -185,11 +195,8 @@ public class RedisReentrantLock implements DistributedLock {
             if (getState() == 0) {
                 throw new IllegalMonitorStateException();
             }
-            int newState = getState() - acquires;
-            if (newState == 0) {
-                setExclusiveOwnerThread(null);
-            }
-            setState(newState);
+            setExclusiveOwnerThread(null);
+            setState(0);
             return true;
         }
 

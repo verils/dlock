@@ -48,10 +48,10 @@ public class RedisLock implements DistributedLock {
         try {
             acquire();
         } catch (InterruptedException e) {
-            sync.release(1);
+            reset();
             Thread.currentThread().interrupt();
         } catch (Exception e) {
-            sync.release(1);
+            reset();
             throw e;
         }
     }
@@ -62,7 +62,7 @@ public class RedisLock implements DistributedLock {
         try {
             acquire();
         } catch (Exception e) {
-            sync.release(1);
+            reset();
             throw e;
         }
     }
@@ -112,7 +112,7 @@ public class RedisLock implements DistributedLock {
      * 该方法是线程安全的
      */
     private void acquire() throws InterruptedException {
-        String value = getLock();
+        String value = newLock();
         while (!redis.tryAcquire(key, value, expireInSeconds)) {
             Thread.sleep(waitSeconds);
         }
@@ -120,12 +120,17 @@ public class RedisLock implements DistributedLock {
     }
 
     private boolean tryAcquire(long time, TimeUnit unit) {
-        String value = getLock();
+        String value = newLock();
         boolean acquired = redis.tryAcquire(key, value, (int) unit.toSeconds(time));
         if (acquired) {
             this.value = value;
         }
         return acquired;
+    }
+
+    private void reset() {
+        sync.release(1);
+        value = null;
     }
 
     /**
@@ -142,7 +147,7 @@ public class RedisLock implements DistributedLock {
         redis.release(key);
     }
 
-    private String getLock() {
+    private String newLock() {
         return UUID.randomUUID().toString();
     }
 
@@ -156,7 +161,8 @@ public class RedisLock implements DistributedLock {
             if (compareAndSetState(0, 1)) {
                 setExclusiveOwnerThread(Thread.currentThread());
                 return true;
-            } else if (isHeldExclusively()) {
+            }
+            if (isHeldExclusively()) {
                 throw new IllegalMonitorStateException("Cannot lock twice on a non-reentrant lock");
             }
             return false;
