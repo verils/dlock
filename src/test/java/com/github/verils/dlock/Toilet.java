@@ -23,39 +23,59 @@ public class Toilet {
 
     private void accept(String man) {
         lock.lock();
-        process(man);
-    }
-
-    private void acceptReentrant(String man) {
-        lock.lock();
-        lock.lock();
-        process(man);
-        lock.unlock();
-    }
-
-    private void tryAccept(String man) {
-        boolean locked = lock.tryLock();
-        if (locked) {
-            process(man);
-        } else {
-            log.warn("Someone is using");
-        }
-    }
-
-    private void process(String man) {
         // use a temp on purpose
         int temp = count;
         try {
             temp++;
-            log.info("No.{} man come, name: {}", temp, man);
-            Thread.sleep(100);
-            log.info("No.{} man gone, name: {}", temp, man);
+            process(man, temp);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
             count = temp;
             lock.unlock();
         }
+    }
+
+    private void acceptReentrant(String man) {
+        lock.lock();
+        lock.lock();
+        // use a temp on purpose
+        int temp = count;
+        try {
+            temp++;
+            process(man, temp);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            count = temp;
+            lock.unlock();
+        }
+        lock.unlock();
+    }
+
+    private void tryAccept(String man) {
+        boolean locked = lock.tryLock();
+        if (locked) {
+            // use a temp on purpose
+            int temp = count;
+            try {
+                temp++;
+                process(man, temp);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } finally {
+                count = temp;
+                lock.unlock();
+            }
+        } else {
+            log.warn("Someone is using");
+        }
+    }
+
+    private void process(String man, int temp) throws InterruptedException {
+        log.info("No.{} man come, name: {}", temp, man);
+        Thread.sleep(100);
+        log.info("No.{} man gone, name: {}", temp, man);
     }
 
     public int getCount() {
