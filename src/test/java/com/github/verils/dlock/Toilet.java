@@ -115,6 +115,12 @@ public class Toilet {
             future.get();
 
             return toilet;
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw e;
         } finally {
             executor.shutdown();
         }

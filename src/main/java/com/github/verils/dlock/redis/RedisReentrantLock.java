@@ -145,9 +145,9 @@ public class RedisReentrantLock implements DistributedLock {
     }
 
     private void reset() {
-        sync.release(1);
         value = null;
         state = 0;
+        sync.release(1);
     }
 
     private void release() {
@@ -176,15 +176,24 @@ public class RedisReentrantLock implements DistributedLock {
         return UUID.randomUUID().toString();
     }
 
-    private class Sync extends AbstractQueuedSynchronizer {
+    private static class Sync extends AbstractQueuedSynchronizer {
 
         @Override
         public boolean tryAcquire(int acquires) {
             if (compareAndSetState(0, 1)) {
                 setExclusiveOwnerThread(Thread.currentThread());
+                if (log.isDebugEnabled()) {
+                    log.debug("Acquired thread synchronizer for: 1");
+                }
                 return true;
             }
-            return isHeldExclusively();
+            boolean reentrant = isHeldExclusively();
+            if (reentrant) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Acquired thread synchronizer for: 1");
+                }
+            }
+            return reentrant;
         }
 
         @Override
@@ -197,6 +206,9 @@ public class RedisReentrantLock implements DistributedLock {
             }
             setExclusiveOwnerThread(null);
             setState(0);
+            if (log.isDebugEnabled()) {
+                log.debug("Released thread synchronizer for: 1");
+            }
             return true;
         }
 
