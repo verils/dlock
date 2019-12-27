@@ -11,7 +11,16 @@ public class JedisClient implements RedisClient {
     private static final String STATUS_OK = "OK";
 
     private static final String NX = "NX";
+
+    /**
+     * 单位：秒
+     */
     private static final String EX = "EX";
+
+    /**
+     * 单位：毫秒
+     */
+    private static final String PX = "PX";
 
     private final JedisPool jedisPool;
 

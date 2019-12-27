@@ -17,7 +17,7 @@ public class RedisReentrantLock implements DistributedLock {
 
     private final String key;
     private final int expireInSeconds;
-    private final int waitSeconds;
+    private final int sleepMilliseconds;
 
     private String value;
     private int state;
@@ -33,11 +33,11 @@ public class RedisReentrantLock implements DistributedLock {
         this(redis, key, expireInSeconds, 30);
     }
 
-    public RedisReentrantLock(RedisClient redis, String key, int expireInSeconds, int waitSeconds) {
+    public RedisReentrantLock(RedisClient redis, String key, int expireInSeconds, int sleepMilliseconds) {
         this.redis = redis;
         this.key = key;
         this.expireInSeconds = expireInSeconds;
-        this.waitSeconds = waitSeconds;
+        this.sleepMilliseconds = sleepMilliseconds;
     }
 
     @Override
@@ -122,7 +122,7 @@ public class RedisReentrantLock implements DistributedLock {
         }
         String lock = newLock();
         while (!redis.tryAcquire(key, lock, expireInSeconds)) {
-            Thread.sleep(waitSeconds);
+            Thread.sleep(sleepMilliseconds);
         }
         value = lock;
         state += 1;
